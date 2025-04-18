@@ -1,48 +1,120 @@
-'use client'
+'use client';
 
-import React, { useState } from 'react'
+import { useState } from 'react';
+
+const COLORS: Record<string, string> = {
+  P: 'bg-blue-600',
+  B: 'bg-red-600',
+  T: 'bg-green-600',
+};
 
 export default function Home() {
-  const [history, setHistory] = useState('')
-  const [prediction, setPrediction] = useState<string | null>(null)
+  const [input, setInput] = useState<string>('');
+  const [prediction, setPrediction] = useState<string[]>([]);
+  const [checkList, setCheckList] = useState<string[]>([]);
+  const [history, setHistory] = useState<{ input: string; prediction: string[]; checkList: string[] }[]>([]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toUpperCase().replace(/[^PBT]/g, '').slice(0, 10);
+    setInput(value);
+  };
 
   const handlePredict = () => {
-    const pCount = history.split('').filter((c) => c.toUpperCase() === 'P').length
-    const bCount = history.split('').filter((c) => c.toUpperCase() === 'B').length
+    if (input.length !== 10) return;
+    const result: string[] = [];
+    const choices = ['P', 'B', 'T'];
+    for (let i = 0; i < 15; i++) {
+      const rand = choices[Math.floor(Math.random() * choices.length)];
+      result.push(rand);
+    }
+    setHistory([...history, { input, prediction, checkList }]);
+    setPrediction(result);
+    setCheckList(new Array(15).fill(''));
+  };
 
-    // โมเดลจำลองความน่าจะเป็นเบื้องต้น
-    const predicted = pCount > bCount ? 'B' : 'P'
-    setPrediction(predicted)
-  }
+  const handleCheck = (index: number, mark: string) => {
+    const updated = [...checkList];
+    updated[index] = updated[index] === mark ? '' : mark;
+    setCheckList(updated);
+  };
+
+  const handleReset = () => {
+    setInput('');
+    setPrediction([]);
+    setCheckList([]);
+    setHistory([]);
+  };
+
+  const handleUndo = () => {
+    const last = history.pop();
+    if (last) {
+      setInput(last.input);
+      setPrediction(last.prediction);
+      setCheckList(last.checkList);
+      setHistory([...history]);
+    }
+  };
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-100">
-      <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-4 text-center">ทำนายผลบาคาร่า</h1>
+    <div className="p-4 space-y-4">
+      <h1 className="text-xl font-bold">Baccarat Predictor</h1>
 
-        <label className="block mb-2 font-semibold">กรอกผลย้อนหลัง 10 ตา (P/B):</label>
-        <input
-          type="text"
-          maxLength={10}
-          value={history}
-          onChange={(e) => setHistory(e.target.value.toUpperCase())}
-          className="w-full p-2 border rounded mb-4"
-          placeholder="ตัวอย่าง: PPBBPBBPBP"
-        />
+      <input
+        type="text"
+        value={input}
+        onChange={handleInputChange}
+        maxLength={10}
+        placeholder="ใส่ผล 10 ตัวแรก (P, B, T)"
+        className="p-2 border rounded w-full"
+      />
 
-        <button
-          onClick={handlePredict}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 w-full"
-        >
-          ทำนายผลถัดไป
+      <div className="flex gap-4">
+        <button onClick={handlePredict} className="bg-blue-600 text-white px-4 py-2 rounded">
+          ทำนาย
         </button>
-
-        {prediction && (
-          <div className="mt-4 text-center text-lg">
-            ผลที่คาดว่าจะออกต่อไปคือ: <span className="font-bold">{prediction}</span>
-          </div>
-        )}
+        <button onClick={handleReset} className="bg-gray-600 text-white px-4 py-2 rounded">
+          รีเซ็ต
+        </button>
+        <button onClick={handleUndo} className="bg-yellow-500 text-white px-4 py-2 rounded">
+          ย้อนกลับ 1 ครั้ง
+        </button>
       </div>
-    </main>
-  )
-}
+
+      <div className="flex flex-wrap gap-2">
+        {[...input, ...prediction].map((val, i) => (
+          <div
+            key={i}
+            className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
+              COLORS[val] || 'bg-gray-300'
+            }`}
+          >
+            {val}
+          </div>
+        ))}
+      </div>
+
+      {prediction.length === 15 && (
+        <div className="flex flex-wrap gap-2 mt-2">
+          {checkList.map((val, i) => (
+            <div key={i} className="flex flex-col items-center">
+              <div className="flex gap-1">
+                <button
+                  onClick={() => handleCheck(i, '✓')}
+                  className={`w-6 h-6 rounded-full text-white ${val === '✓' ? 'bg-green-500' : 'bg-gray-300'}`}
+                >
+                  ✓
+                </button>
+                <button
+                  onClick={() => handleCheck(i, '✗')}
+                  className={`w-6 h-6 rounded-full text-white ${val === '✗' ? 'bg-red-500' : 'bg-gray-300'}`}
+                >
+                  ✗
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+        }
